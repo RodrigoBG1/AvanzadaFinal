@@ -1,6 +1,9 @@
 #include <iostream>
 #include <ctime>
-
+#include <cstring>
+#include <cstdlib>
+#include <fstream>
+#include <vector>
 using namespace std;
 
 class Jugador
@@ -9,6 +12,13 @@ class Jugador
     int colores[5];
     int lista_colores[5];
     int pivotes[5] = {0};
+    struct InfoJuego {
+        vector<pair<string, string>> intentos; // Primer string es el intento, segundo es la respuesta
+        string cod;
+        bool gano;
+    };
+
+    static InfoJuego ultimoJuego;
 
 
     Jugador()
@@ -48,33 +58,110 @@ class Jugador
         cout << endl;
     }
 
-    void descrifrar_pc() 
-    {    
-        int adivinar[5] = {1};
-        int contador = 0;
-        int adivinado[5] = {0};
-        while(true){
-            for(int i = 0; i < 5; ++i){
-                if(adivinar[i] == colores[i] && adivinado[i] != 1){
-                    adivinado[i] = 1;
-                    contador++;
-                }
-            }
-            for(int i = 0; i < 5; ++i){
-                if(adivinado[i] == 0){
-                    adivinar[i]++;
-                }
-            }
-            if(contador == 5){
-                cout << "Se resolvio el juego: " << endl;
-                for(int i = 0; i < 5; ++i){
-                    cout << adivinar[i] << "   ";
-                }
-                cout << endl;
-                break;
+    int posicion_color(int vec[5], int n){
+        for(int i = 0; i < 5; ++i){
+            if(vec[i] == n){
+                return i;
             }
         }
+        return -1;
     }
+
+    bool comprobar_win(int vec[5]){
+        int cont = 0;
+        for(int i = 0; i < 5; ++i){
+            if(vec[i] == colores[i]){
+                cont++;
+            }
+        }
+        if(cont == 5) return true;
+        return false;
+    }
+
+void descrifrar_pc() {    
+    int opc, correct_color, opc1, n, pos;
+    string opc_s;
+    int vec[5] = {1,2,3,4,5};
+    int usado[5] = {0};
+    int t = 10;
+    while(t--){
+        cout << "Tus colores elegidos fueron: " << endl; 
+        mostrar_colores();
+        cout << "Colores propuestos por la computadora: " << endl;
+        for(int i = 0;i  < 5; ++i){
+            cout << vec[i] << "\t ";
+        }
+        cout << endl << "0 significa posición incorrecta 1 posición correcta" << endl;
+        for(int i = 0; i < 5; ++i){
+            cout << usado[i] << " ";
+        }
+        cout << endl << "Algun color aparece en tu codigo secreto? 1.- si/ 2.- no" << endl;
+        cin >> opc;
+        if(opc == 1){
+            cout << "Está en la posición correcta? 1.- si/ 2.- no" << endl;
+            cin >> opc1;
+            if(opc1 == 1){
+                cout << "Que posición está?" << endl;
+                cin >> opc;
+                usado[opc - 1] = 1;
+            }
+            else{
+                cout << "Que color es? - Pon en numero" << endl;
+                cin >> n;
+                pos = posicion_color(vec, n);
+                if(pos < 4){
+                    while(true){
+                        if(usado[pos] == 0){
+                            break;
+                        }
+                        pos++;
+                    }
+                    vec[pos + 1] = vec[pos];
+                    pos = pos + 1;
+                }
+                else{
+                     while(true){
+                        if(usado[pos] == 0){
+                            break;
+                        }
+                        pos--;
+                    }
+                    vec[0] = vec[pos];
+                    pos = 0;
+                }
+                for(int i = 0; i < 5; ++i){
+                    if(i != pos && usado[i] == 0){
+                        vec[i] = rand() % 5 + 1;
+                    }
+                }
+
+            }
+        }
+        else{
+            for(int i = 0; i < 5; ++i){
+                if(usado[i] == 0){
+                    vec[i] = rand() % 5 + 1;
+                }
+            }
+        }
+    system("clear");
+    if(comprobar_win(vec)){
+        cout << "La computadora ha ganado con el vector: " << endl;
+        for(int i = 0; i < 5; ++i){
+            cout << vec[i] << "\t";
+        }
+        cout << endl;
+        break;
+    }
+    }
+    ofstream archivoBinario("ultimo_juego.bin", ios::binary);
+    if (archivoBinario) {
+        archivoBinario.write(reinterpret_cast<const char*>(&ultimoJuego), sizeof(InfoJuego));
+        archivoBinario.close();
+    } else {
+        cout << "Error al guardar la información del juego." << endl;
+    }
+}
 
     void intentos(string n, int i)
     {
@@ -155,8 +242,54 @@ class Jugador
 
         if (haGanado)
             cout << "¡Felicidades, lo has logrado!" << endl;
+
+        
+
+    
+    ofstream archivoBinario("ultimo_juego.bin", ios::binary);
+    if (archivoBinario) {
+        archivoBinario.write(reinterpret_cast<const char*>(&ultimoJuego), sizeof(InfoJuego));
+        archivoBinario.close();
+    } else {
+        cout << "Error al guardar la información del juego." << endl;
     }
+    }
+        
+        
+void GuardarJuego() {
+    ifstream archivoBinario("ultimo_juego.bin", ios::binary);
+    if (archivoBinario) {
+        InfoJuego juego;
+        archivoBinario.read(reinterpret_cast<char*>(&juego), sizeof(InfoJuego));
+        archivoBinario.close();
+
+        cout << "Codigo Secreto: " << juego.cod << endl;
+        cout << (juego.gano ? "Juego Ganado" : "Juego Perdido") << endl;
+        for (const auto& intento : juego.intentos) {
+            cout << "Intento: " << intento.first << " - Respuesta: " << intento.second << endl;
+        }
+    } else {
+        cout << "No hay información del último juego disponible." << endl;
+    }
+}
+
+void GuardarJuegoTxt() {
+    ofstream archivoTexto("ultimo_juego.txt");
+    if (archivoTexto) {
+        archivoTexto << "Codigo Secreto: " << ultimoJuego.cod << endl;
+        archivoTexto << (ultimoJuego.gano ? "Juego Ganado" : "Juego Perdido") << endl;
+        for (const auto& intento : ultimoJuego.intentos) {
+            archivoTexto << "Intento: " << intento.first << " - Respuesta: " << intento.second << endl;
+        }
+        cout << "El juego ha sido exportado a ultimo_juego.txt" << endl;
+    } else {
+        cout << "Error al abrir el archivo para escritura." << endl;
+    }
+}
+
 };
+Jugador::InfoJuego Jugador::ultimoJuego;
+
 
 int main()
 {
@@ -165,9 +298,10 @@ int main()
     string n;
     cout << "Los colores disponibles son:\n" << "rojo, verde, amarillo, azul y negro" << endl;
     cout << "Los numeros 1, 2, 3, 4 y 5 representan los colores respectivamente" << endl;
+    cout << "EL numero 0 significa que el color no esta, el numero 1 significa que el color se encuentra en la posicion \n correcta y el 2 que el color esta en el codigo secreto pero no en su posicion " << endl;
     cout << "Comenzemos...\n" << endl;
                 
-    do{
+    do {
         cout << "--------MENU--------" << endl;
         cout << "1. Creador de codigo (PC) vs Descifrador(Humano)\n2. Creador de codigo (Humano) vs Descifrador(PC)\n3. Listar el ultimo juego\n";
         cout << "4. Mandar el último juego a un TXT\n5. Salir\n--------------------\n";
@@ -191,8 +325,10 @@ int main()
                 jugador1.mostrar_colores();
                 break;
             case 3:
+                jugador1.GuardarJuego();
                 break;
             case 4:
+                jugador1.GuardarJuegoTxt();
                 break;
             case 5:
                 cout << "Saliendo..." << endl;
@@ -202,5 +338,7 @@ int main()
                 break;
         }
 
-    }while(opcion != 5);
+    } while (opcion != 5);
+
+    return 0;
 }
