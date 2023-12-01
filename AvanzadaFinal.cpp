@@ -204,8 +204,3 @@ int main()
 
     }while(opcion != 5);
 }
-
-
-
-
-https://prod.liveshare.vsengsaas.visualstudio.com/join?81E1AC87B0976C4E225FE35143B0CCF66271
